@@ -1,5 +1,6 @@
 
 import { getSignImagesForWord } from './databaseService';
+import { normalizeToASLSigns } from './languageService';
 
 interface TranslationResult {
   words: {
@@ -20,9 +21,13 @@ export async function translateToSignLanguage(text: string): Promise<Translation
   console.log("NMT: Processing input text:", cleanedText);
   
   // Split into words while preserving meaningful units
-  const words = cleanedText.split(/\s+/).filter(word => word.length > 0);
+  let words = cleanedText.split(/\s+/).filter(word => word.length > 0);
   
   console.log("NMT: Extracted words:", words);
+  
+  // Normalize words to handle synonyms
+  words = normalizeToASLSigns(words);
+  console.log("NMT: Words after synonym normalization:", words);
   
   // Process each word with context awareness
   let translatedSigns: { text: string; imageUrl: string }[] = [];

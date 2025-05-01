@@ -2,6 +2,7 @@
 import { pipeline, env } from '@huggingface/transformers';
 import * as tf from '@tensorflow/tfjs';
 import { getSignImagesForWord } from './databaseService';
+import { normalizeToASLSigns, WORD_SYNONYMS } from './languageService';
 
 // Configure the transformers.js environment
 env.allowLocalModels = false;
@@ -61,8 +62,12 @@ export async function translateWithTransformer(text: string): Promise<Translatio
     console.log("Converted to ASL grammar:", translatedGrammar);
     
     // Process according to ASL grammar structure
-    const words = translatedGrammar.split(/\s+/).filter(word => word.length > 0);
+    let words = translatedGrammar.split(/\s+/).filter(word => word.length > 0);
     console.log("Words after grammar transformation:", words);
+    
+    // Normalize words to handle synonyms
+    words = normalizeToASLSigns(words);
+    console.log("Words after synonym normalization:", words);
     
     // Get sign images and generate pose data
     const translatedSigns = await Promise.all(words.map(async (word) => {
@@ -102,10 +107,13 @@ function fallbackTranslation(cleanedText: string, originalText: string): Transla
   console.log("Using fallback translation");
   const words = cleanedText.split(/\s+/).filter(word => word.length > 0);
   
+  // Normalize words to handle synonyms
+  const normalizedWords = normalizeToASLSigns(words);
+  
   // Process each word
   let translatedSigns: { text: string; imageUrl: string; poseData?: number[][] }[] = [];
   
-  for (const word of words) {
+  for (const word of normalizedWords) {
     const wordSigns = getSignImagesForWord(word);
     translatedSigns = [
       ...translatedSigns, 
@@ -119,7 +127,7 @@ function fallbackTranslation(cleanedText: string, originalText: string): Transla
   return {
     words: translatedSigns,
     originalText,
-    translatedGrammar: cleanedText // In fallback mode, we don't transform grammar
+    translatedGrammar: normalizedWords.join(" ") // In fallback mode, we just use normalized words
   };
 }
 
@@ -128,32 +136,61 @@ function fallbackTranslation(cleanedText: string, originalText: string): Transla
  * ASL typically follows Time-Topic-Comment structure
  */
 function convertToAslGrammar(text: string): string {
-  // Simple rule-based transformation for demonstration
-  // A full implementation would use the transformer model
-  
-  // Example transformations:
-  // "I will go to the store tomorrow" -> "TOMORROW I STORE GO"
-  // "What is your name?" -> "NAME YOU WHAT"
-  
+  // Enhanced rule-based transformation for ASL grammar
   const lowerText = text.toLowerCase();
+  const words = lowerText.split(/\s+/).filter(word => word.length > 0);
   
-  // Sample rules (very simplified)
-  if (lowerText.includes("what is your name")) {
-    return "name you what";
+  // ASL grammar rules (Time-Topic-Comment structure)
+  const timeWords = ["yesterday", "today", "tomorrow", "later", "before", "after", "now", "past", "future"];
+  const questionWords = ["what", "who", "where", "when", "why", "how", "which"];
+  
+  // Identify sentence type
+  const isQuestion = questionWords.some(qw => words.includes(qw)) || lowerText.endsWith("?");
+  
+  // Extract time references
+  const timeReferences: string[] = [];
+  const nonTimeWords: string[] = [];
+  
+  words.forEach(word => {
+    if (timeWords.includes(word)) {
+      timeReferences.push(word);
+    } else {
+      nonTimeWords.push(word);
+    }
+  });
+  
+  // Build ASL structure
+  let aslStructure: string[] = [];
+  
+  // Time always comes first in ASL
+  aslStructure = [...timeReferences];
+  
+  if (isQuestion) {
+    // For questions: Topic + Question Word + Comment
+    const topic = nonTimeWords.filter(w => !questionWords.includes(w));
+    const qWords = nonTimeWords.filter(w => questionWords.includes(w));
+    
+    // For "What is X" questions, structure becomes "X WHAT"
+    if (qWords.includes("what") && (words.includes("is") || words.includes("are"))) {
+      const subject = nonTimeWords.filter(w => w !== "what" && w !== "is" && w !== "are");
+      aslStructure = [...aslStructure, ...subject, "what"];
+    } else {
+      // General question structure
+      aslStructure = [...aslStructure, ...topic, ...qWords];
+    }
+  } else {
+    // For statements: Topic + Comment
+    // Remove auxiliary verbs and articles as they're usually omitted in ASL
+    const auxVerbs = ["am", "is", "are", "was", "were", "will", "would", "have", "has", "had"];
+    const articles = ["a", "an", "the"];
+    
+    aslStructure = [
+      ...aslStructure,
+      ...nonTimeWords.filter(word => !auxVerbs.includes(word) && !articles.includes(word))
+    ];
   }
   
-  if (lowerText.includes("how are you")) {
-    return "you feel how";
-  }
-  
-  if (lowerText.includes("tomorrow")) {
-    // Move time reference to front
-    return "tomorrow " + lowerText.replace("tomorrow", "").trim();
-  }
-  
-  // For other sentences, just return the cleaned text for now
-  // A real implementation would use more sophisticated parsing
-  return lowerText;
+  return aslStructure.join(" ");
 }
 
 /**

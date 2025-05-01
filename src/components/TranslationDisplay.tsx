@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -252,6 +253,7 @@ export const TranslationDisplay: React.FC<TranslationDisplayProps> = ({ result }
               
               <div className="text-xs text-gray-500">
                 <p>ASL typically uses a different word order than English, often following Time-Topic-Comment structure.</p>
+                <p className="mt-1">Words with similar meanings are mapped to consistent signs in ASL.</p>
               </div>
             </div>
           </TabsContent>
@@ -275,7 +277,9 @@ export const TranslationDisplay: React.FC<TranslationDisplayProps> = ({ result }
                 </h3>
                 <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
                   <li>Transformer models for context understanding</li>
-                  <li>ASL grammar restructuring</li>
+                  <li>ASL grammar restructuring with Time-Topic-Comment structure</li>
+                  <li>Word synonym normalization for consistent signs</li>
+                  <li>Grammatical error correction</li>
                   <li>Avatar visualization with pose data (when available)</li>
                   <li>Few-shot learning for new signs</li>
                   {isMultilingual && <li>Multilingual support with language detection and translation</li>}
@@ -291,16 +295,16 @@ export const TranslationDisplay: React.FC<TranslationDisplayProps> = ({ result }
                     Your input was detected as {getLanguageName(result.detectedLanguage || '')} and translated to English before generating sign language.
                   </p>
                   <div className="flex items-center justify-around text-sm text-gray-700">
-                    <Badge variant="outline" className="bg-white px-2 py-1">
-                      {getLanguageName(result.detectedLanguage || '')}
+                    <Badge variant="outline" className="bg-white px-2 py-1 flex items-center gap-1">
+                      <span>{getLanguageName(result.detectedLanguage || '')}</span>
                     </Badge>
                     <span>→</span>
-                    <Badge variant="outline" className="bg-white px-2 py-1">
-                      English
+                    <Badge variant="outline" className="bg-white px-2 py-1 flex items-center gap-1">
+                      <span>English</span>
                     </Badge>
                     <span>→</span>
-                    <Badge variant="outline" className="bg-white px-2 py-1">
-                      ASL
+                    <Badge variant="outline" className="bg-white px-2 py-1 flex items-center gap-1">
+                      <span>ASL</span>
                     </Badge>
                   </div>
                 </div>
@@ -319,3 +323,4 @@ export const TranslationDisplay: React.FC<TranslationDisplayProps> = ({ result }
     </Card>
   );
 };
+

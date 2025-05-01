@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { translateToSignLanguage } from '../services/translationService';
 import { translateWithTransformer } from '../services/advancedTranslationService';
@@ -53,11 +54,12 @@ const TranslationForm: React.FC<TranslationFormProps> = ({ onTranslationComplete
     try {
       console.log("Processing multilingual input:", textToTranslate);
       
-      // Process multilingual input
+      // Process multilingual input with improved grammar correction
       const multilingual = await processMultilingualInput(textToTranslate);
       setDetectedLanguage(multilingual.detectedLanguage);
       
-      const textForTranslation = multilingual.translatedText;
+      // Use the grammatically corrected text for translation
+      const textForTranslation = multilingual.grammaticallyCorrect;
       console.log("Text after language processing:", textForTranslation);
       console.log("Using advanced model:", useAdvancedModel);
       
@@ -160,8 +162,8 @@ const TranslationForm: React.FC<TranslationFormProps> = ({ onTranslationComplete
             </div>
             
             {detectedLanguage && detectedLanguage !== SUPPORTED_LANGUAGES.ENGLISH && (
-              <Badge variant="outline" className="absolute top-2 right-2 bg-blue-50">
-                <Globe size={12} className="mr-1" />
+              <Badge variant="outline" className="absolute top-2 right-2 bg-blue-50 flex items-center gap-1">
+                <Globe size={12} />
                 {getLanguageName(detectedLanguage)}
               </Badge>
             )}
